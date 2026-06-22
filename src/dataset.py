@@ -28,7 +28,7 @@ class ImageDataset(Dataset):
         """
         Read a single image based on index and return the transformed tensor and class index.
         """
-        img = Image.open(self.paths[index]).convert("RGB")
+        img = Image.open(self.paths[index]).convert("RGBA").convert("RGB")
         class_name = self.paths[index].parent.name
         class_idx = self.classes.index(class_name)
 
