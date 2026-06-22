@@ -23,7 +23,7 @@ def accuracy_fn(y_pred, y_true):
     """
     return (y_pred == y_true).sum().item()
 
-def train_step(dataloader, model, cost_fn, optimizer, accuracy_fn, device):
+def train_step(dataloader, model, cost_fn, optimizer, accuracy_fn, device, epoch_progress):
     """
     Executes a single training epoch.
 
@@ -34,16 +34,17 @@ def train_step(dataloader, model, cost_fn, optimizer, accuracy_fn, device):
         optimizer (optim.Optimizer): Optimization algorithm.
         accuracy_fn (callable): Function to compute accuracy.
         device (str): Device to run computation on ('cpu' or 'cuda').
+        epoch_progress (tqdm): Progress bar for the current epoch.
     """
     train_cost = 0
     train_correct = 0
     model.train()
-    for (x, y) in dataloader: 
+    for (x, y) in dataloader:
         x = x.to(device)
         y = y.to(device)
 
         y_pred = model(x)
-        cost = cost_fn(y_pred, y) 
+        cost = cost_fn(y_pred, y)
         train_cost += cost.item() * len(x)
         train_correct += accuracy_fn(y_pred.argmax(dim=1), y)
 
@@ -55,9 +56,9 @@ def train_step(dataloader, model, cost_fn, optimizer, accuracy_fn, device):
     train_cost /= total_samples
     train_acc = (train_correct / total_samples) * 100
 
-    print(f"\nTrain Cost: {train_cost:.4f}, Train Acc: {train_acc:.2f}")
+    epoch_progress.write(f"Train Cost: {train_cost:.4f}, Train Acc: {train_acc:.2f}%")
 
-def test_step(dataloader, model, cost_fn, accuracy_fn, device):
+def test_step(dataloader, model, cost_fn, accuracy_fn, device, epoch_progress):
     """
     Evaluates the model on the test dataset.
 
@@ -67,6 +68,7 @@ def test_step(dataloader, model, cost_fn, accuracy_fn, device):
         cost_fn (nn.Module): Loss function.
         accuracy_fn (callable): Function to compute accuracy.
         device (str): Device to run computation on ('cpu' or 'cuda').
+        epoch_progress (tqdm): Progress bar for the current epoch.
 
     Returns:
         tuple: (test_cost, test_acc) representing the average loss and accuracy percentage.
@@ -87,8 +89,8 @@ def test_step(dataloader, model, cost_fn, accuracy_fn, device):
     test_cost /= total_samples
     test_acc = (test_correct / total_samples) * 100
 
-    print(f"Test Cost: {test_cost:.4f}, Test Acc: {test_acc:.2f}\n")
-                
+    epoch_progress.write(f"Test Cost: {test_cost:.4f}, Test Acc: {test_acc:.2f}%")
+
     return test_cost, test_acc
     
     
@@ -105,7 +107,12 @@ def train_model(args):
         torch.cuda.manual_seed_all(args.seed)
     else:
         device = "cpu"
-    print(f"Using device: {device}")
+
+    tqdm.write(f"Device: {device}")
+    tqdm.write(f"Dataset: {args.dataset_root}")
+    tqdm.write(f"Model: EfficientNet-{args.model_name}")
+    tqdm.write(f"Batch Size: {args.batch_size}, Epochs: {args.epochs}, LR: {args.learning_rate}")
+    tqdm.write("-" * 50)
 
     train_dataset = ImageDataset(args.dataset_root, train=True, transform=train_transform)
     test_dataset = ImageDataset(args.dataset_root, train=False, transform=test_transform)
@@ -135,17 +142,19 @@ def train_model(args):
     optimizer = optim.AdamW(model.parameters(), lr=args.learning_rate)
 
     best_test_acc = 0.0
+    
+    epoch_progress = tqdm(range(args.epochs), desc="Training", unit="epoch")
 
-    for epoch in tqdm(range(args.epochs)):
-        print(f"Epoch: {epoch}\n-----------------")
+    for epoch in epoch_progress:
+        epoch_progress.set_postfix_str(f"Best Acc: {best_test_acc:.2f}%")
 
-        train_step(train_dataloader, model, loss_fn, optimizer, accuracy_fn, device)
+        train_step(train_dataloader, model, loss_fn, optimizer, accuracy_fn, device, epoch_progress)
 
-        test_cost, test_acc = test_step(test_dataloader, model, loss_fn, accuracy_fn, device)
+        test_cost, test_acc = test_step(test_dataloader, model, loss_fn, accuracy_fn, device, epoch_progress)
 
         if test_acc > best_test_acc:
             best_test_acc = test_acc
-            print(f"Better model found! Current best Test Acc: {best_test_acc:.2f}%, saving weights...")
+            epoch_progress.write(f"✓ Better model found! Best Test Acc: {best_test_acc:.2f}%")
 
             save_path = Path(args.save_path)
             save_path.parent.mkdir(parents=True, exist_ok=True)
