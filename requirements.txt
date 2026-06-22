@@ -1,0 +1,9 @@
+torch
+torchvision
+gradio
+gdown
+scikit-learn
+Pillow
+pillow-heif
+tqdm
+numpy
