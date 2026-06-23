@@ -15,7 +15,7 @@ def download_and_prepare_data():
 
     if not os.path.exists(dataset_zip):
         print("Downloading dataset from Google Drive...")
-        url = "https://drive.google.com/uc?export=download&id=1-M7ki8zY2c-e0_lt1T80ALvbhHvefp2-"
+        url = "https://drive.google.com/uc?export=download&id=1dbgt3_jVqyQ9uB3f59eZOGCVmSNd-Itj"
         gdown.download(url, dataset_zip, quiet=False)
     else:
         print("Dataset zip file already exists, skipping download.")
