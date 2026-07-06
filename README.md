@@ -4,15 +4,18 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/13fvln9eDDOxi-MM0HW2jN5qUhr39I9-N?usp=sharing)
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-HuggingFace-FFD21E)](https://jasonhoooooo-face-mask-classification.hf.space)
+[![Gradio Demo](https://img.shields.io/badge/Live%20Demo-HuggingFace-FFD21E)](https://jasonhoooooo-face-mask-classification.hf.space)
 
-An end-to-end deep learning project implementing EfficientNet for face mask classification.
-Rather than a standard fine-tuning exercise, this repository focuses on core AI fundamentals and software engineering practices:
-
-- **Architecture from Scratch**: Deliberately built from the ground up to deeply understand EfficientNet's internal scaling, bypassing high-level wrapper APIs.
-- **Modular Engineering**: Refactored from an experimental Colab notebook into a clean, modular Python codebase to ensure maintainability and reproducibility.
+An end-to-end computer vision project implementing EfficientNet for face mask classification with real-time detection capabilities using MediaPipe BlazeFace.
+This repository emphasizes fundamental AI concepts and software engineering best practices through a from-scratch implementation.
 
 ## Demo
+
+**Real-time Detection**
+
+![Real-time Detection Demo](images/face-mask-realtime-detection-demo.gif)
+
+**Gradio Web Interface**
 
 ![Face Mask Classification Demo](images/face-mask-classification-demo.gif)
 
@@ -23,18 +26,22 @@ Rather than a standard fine-tuning exercise, this repository focuses on core AI 
   - Mask not covering nose
   - Mask properly worn
   - No mask
-- **EfficientNet Architecture**: Implements EfficientNet-B0 to B7 variants with custom scaling
-- **CLI Training**: Command-line interface for model training with configurable hyperparameters
-- **Gradio Web Interface**: Interactive web app for real-time mask classification
+- **Curated Dataset**: Aggregated and cleaned from 4 Kaggle sources with 14,540 labeled images
+- **EfficientNet Architecture**: PyTorch implementation of EfficientNet-B0 to B7 from scratch with compound scaling
+- **Gradio Web Interface**: Lightweight inference endpoint for quick single-image mask classification
+- **Real-time Detection**: Low-latency video stream evaluation with MediaPipe BlazeFace face detection pipeline
 
 ## Project Structure
 
 ```
 face-mask-classification/
-├── data/                  # Example images
+├── data/examples          # Example images
+├── entrypoints/
+│   ├── gradio_app.py      # Gradio web interface
+│   └── realtime_app.py    # Real-time webcam detection
 ├── images/                # Demo images and GIFs
 ├── notebooks/
-│   └── face_mask_classification_training.ipynb  # Colab notebook
+│   └── face_mask_classification_training.ipynb  # Colab notebook for training
 ├── src/
 │   ├── __init__.py
 │   ├── data_setup.py      # Data preparation utilities
@@ -42,7 +49,7 @@ face-mask-classification/
 │   ├── model.py           # EfficientNet model architecture
 │   └── train.py           # Training pipeline CLI
 ├── weights/               # Trained model weights
-├── app.py                 # Gradio web interface
+├── .gitignore             
 ├── LICENSE                # MIT License
 ├── README.md              # This file
 └── requirements.txt       # Python dependencies
@@ -91,23 +98,42 @@ python src/train.py --dataset_root Face_Mask_Dataset \
 - `--save_path`: Path to save trained model weights (default: `weights/trained_model_parameters.pth`)
 - `--seed`: Random seed for reproducibility (default: 87)
 
+**Note**: Training locally can be resource-intensive. If a local GPU is unavailable, you can use the Google Colab notebook:
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/13fvln9eDDOxi-MM0HW2jN5qUhr39I9-N?usp=sharing)
+
 ### Running the Web Interface
 
 Launch the Gradio web app for interactive classification:
 
 ```bash
-python app.py
+python entrypoints/gradio_app.py
 ```
 
 The web interface will be available at `http://127.0.0.1:7860`
 
-**Online Demo**: [![Live Demo](https://img.shields.io/badge/Live%20Demo-HuggingFace-FFD21E)](https://jasonhoooooo-face-mask-classification.hf.space)
+For quick inference with individual images, launch the Gradio app. This serves as a lightweight inference endpoint.
 
-## Colab Training
+**Online Demo**: [![Gradio Demo](https://img.shields.io/badge/Live%20Demo-HuggingFace-FFD21E)](https://jasonhoooooo-face-mask-classification.hf.space)
 
-You can also train the model using the Google Colab notebook:
+### Real-time Detection
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/13fvln9eDDOxi-MM0HW2jN5qUhr39I9-N?usp=sharing)
+Launch the real-time webcam detection with MediaPipe face detector:
+
+```bash
+python entrypoints/realtime_app.py
+```
+
+To evaluate the model's performance on continuous video streams, use the real-time application. This script integrates a MediaPipe face detection pipeline with trained EfficientNet for low-latency predictions.
+
+The application will:
+- Open your webcam
+- Detect faces using MediaPipe BlazeFace
+- Classify mask status in real-time
+- Display FPS and hardware device information
+- Press 'Q' to exit
+
+**Requirements**: Ensure you have a webcam connected and the MediaPipe model will be automatically downloaded on first run.
 
 ## Model Architecture
 
