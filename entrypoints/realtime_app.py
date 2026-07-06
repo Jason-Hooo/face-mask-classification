@@ -37,6 +37,18 @@ def ensure_model_exists(path, url) -> None:
             print(f"Download failed. Error: {e}")
             raise SystemExit(1)
 
+def draw_hud(img, device_name):
+    """Draw a semi-transparent status information bar (HUD) at the bottom of the screen"""
+    h, w = img.shape[:2]
+    hud_h = 60
+    overlay = img.copy()
+
+    cv2.rectangle(overlay, (0, h - hud_h), (w, h), (0, 0, 0), cv2.FILLED)
+    cv2.addWeighted(overlay, 0.6, img, 0.4, 0, img)
+
+    status_text = f"Hardware: {str(device_name).upper()} | Press 'Q' to Exit"
+    cv2.putText(img, status_text, (20, h - 22), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (200, 200, 200), 1, cv2.LINE_AA)
+
 ensure_model_exists(BLAZEFACE_MODEL_PATH, BLAZEFACE_MODEL_URL)
 
 if torch.cuda.is_available():
@@ -142,6 +154,8 @@ def main():
                                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
             
             cv2.putText(frame, f"FPS: {fps:.1f}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2, cv2.LINE_AA)
+
+            draw_hud(frame, device)
 
             cv2.imshow("Face Mask Real-time Detection", frame)
 
