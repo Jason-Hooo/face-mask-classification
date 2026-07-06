@@ -1,6 +1,7 @@
 
 import os
 import sys
+import time
 import urllib.request
 import cv2
 import torch
@@ -21,6 +22,10 @@ from src.dataset import test_transform
 EFFICIENTNET_MODEL_PATH = os.path.join(BASE_DIR, 'weights', 'trained_model_parameters.pth')
 BLAZEFACE_MODEL_PATH = os.path.join(BASE_DIR, 'weights', 'blaze_face_short_range.tflite')
 BLAZEFACE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite'
+
+PAD_W_RATIO = 0.3
+PAD_H_TOP_RATIO = 0.5
+PAD_H_BOTTOM_RATIO = 0.1
 
 def ensure_model_exists(path, url) -> None:
     if not os.path.exists(path):
@@ -60,24 +65,32 @@ def main():
     trained_model.eval()
 
     base_options = python.BaseOptions(model_asset_path=BLAZEFACE_MODEL_PATH)
-    options = vision.FaceDetectorOptions(base_options=base_options, min_detection_confidence=0.6)
+    options = vision.FaceDetectorOptions(base_options=base_options, running_mode=vision.RunningMode.VIDEO, min_detection_confidence=0.6)
 
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("Error: Could not open webcam.")
         return
-    
+
+    start_time = time.time()
+    prev_frame_time = 0
     with vision.FaceDetector.create_from_options(options) as detector:
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
+
+            current_time = time.time()
+            fps = 1 / (current_time - prev_frame_time) if prev_frame_time != 0 else 0
+            prev_frame_time = current_time
         
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             h, w, _ = rgb_frame.shape
 
+            timestamp_ms = int((current_time - start_time) * 1000)
+
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
-            detection_result = detector.detect(mp_image)
+            detection_result = detector.detect_for_video(mp_image, timestamp_ms)
             
             if detection_result.detections:
                 faces_tensor = []
@@ -90,9 +103,9 @@ def main():
                     width = bbox.width
                     height = bbox.height
                     
-                    pad_w = int(width * 0.3)
-                    pad_h_top = int(height * 0.5)    
-                    pad_h_bottom = int(height * 0.1)  
+                    pad_w = int(width * PAD_W_RATIO)
+                    pad_h_top = int(height * PAD_H_TOP_RATIO)    
+                    pad_h_bottom = int(height * PAD_H_BOTTOM_RATIO)  
 
                     x1 = max(0, int(xmin - pad_w))
                     y1 = max(0, int(ymin - pad_h_top))
@@ -105,13 +118,12 @@ def main():
 
                     pil_image = Image.fromarray(face_crop)
                     tensor_image = test_transform(pil_image)
-                    tensor_image = tensor_image.unsqueeze(0)
                     
                     faces_tensor.append(tensor_image)
                     valid_boxes.append((x1, y1, x2, y2))
                 
                 if faces_tensor:
-                    batch_tensors = torch.cat(faces_tensor).to(device)
+                    batch_tensors = torch.stack(faces_tensor).to(device)
                     
                     with torch.inference_mode():
                         outputs = trained_model(batch_tensors)
@@ -128,6 +140,8 @@ def main():
                         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                         cv2.putText(frame, label_text, (x1, y1 - 15), 
                                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, color, 2)
+            
+            cv2.putText(frame, f"FPS: {fps:.1f}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2, cv2.LINE_AA)
 
             cv2.imshow("Face Mask Real-time Detection", frame)
 
