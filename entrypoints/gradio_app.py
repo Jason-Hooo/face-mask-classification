@@ -28,7 +28,7 @@ def face_mask_classification(img):
     if isinstance(img, np.ndarray): 
         img = Image.fromarray(img)
     img = test_transform(img)
-    img = img.reshape(-1, 3, 240, 240)
+    img = img.unsqueeze(0)
 
     trained_model.eval()
     with torch.inference_mode():
