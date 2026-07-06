@@ -1,17 +1,25 @@
 
+import os
+import sys
 import gradio as gr
 import torch
 from PIL import Image
 import numpy as np
+from pillow_heif import register_heif_opener
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
 from src.model import EfficientNet
 from src.dataset import test_transform
-from pillow_heif import register_heif_opener
+
+EFFICIENTNET_MODEL_PATH = os.path.join(BASE_DIR, 'weights', 'trained_model_parameters.pth')
 
 register_heif_opener()
 
 trained_model = EfficientNet("B1", 4)
-
-trained_model.load_state_dict(torch.load("weights/trained_model_parameters.pth", map_location="cpu"))
+trained_model.load_state_dict(torch.load(EFFICIENTNET_MODEL_PATH, map_location="cpu"))
 
 input = gr.Image(label="Image")
 output = gr.Label(label="Classification Result")
@@ -20,7 +28,7 @@ def face_mask_classification(img):
     if isinstance(img, np.ndarray): 
         img = Image.fromarray(img)
     img = test_transform(img)
-    img = img.reshape(-1, 3, 240, 240)
+    img = img.unsqueeze(0)
 
     trained_model.eval()
     with torch.inference_mode():
