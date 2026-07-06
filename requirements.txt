@@ -7,3 +7,5 @@ Pillow
 pillow-heif
 tqdm
 numpy
+opencv-python
+mediapipe

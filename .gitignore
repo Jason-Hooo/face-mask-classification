@@ -5,6 +5,9 @@ Face_Mask_Dataset.zip
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
+# MediaPipe / local model assets
+*.tflite
+
 # IPython
 profile_default/
 ipython_config.py
